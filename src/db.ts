@@ -8,6 +8,7 @@ export interface InventoryItem {
   threshold: number;
   hasThreshold: boolean;
   image?: string;
+  brand?: string;
   lastUpdated: number;
 }
 
@@ -29,8 +30,8 @@ const db = new Dexie('PantryInventoryManagerDB') as Dexie & {
   >;
 };
 
-db.version(1).stores({
-  inventory: '++id, upc, name',
+db.version(2).stores({
+  inventory: '++id, upc, name, brand',
   groceryList: '++id, name, inventoryId'
 });
 

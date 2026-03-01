@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Plus, Minus, Trash2, AlertCircle } from 'lucide-react';
+import { Plus, Minus, Trash2, AlertCircle, Package } from 'lucide-react';
 import db from '../db';
 import { Link } from 'react-router-dom';
 
@@ -39,8 +39,20 @@ export default function InventoryList() {
                         <div key={item.id} className="card" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                 <div>
-                                    <h3 style={{ margin: 0, fontSize: 18 }}>{item.name}</h3>
-                                    <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)' }}>UPC: {item.upc}</p>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                                        {item.image ? (
+                                            <img src={item.image} alt={item.name} style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 8, backgroundColor: 'white' }} />
+                                        ) : (
+                                            <div style={{ width: 48, height: 48, borderRadius: 8, backgroundColor: 'var(--bg-elevated)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                <Package size={24} color="var(--text-secondary)" />
+                                            </div>
+                                        )}
+                                        <div>
+                                            {item.brand && <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-color)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>{item.brand}</div>}
+                                            <h3 style={{ margin: 0, fontSize: 18, lineHeight: 1.2 }}>{item.name}</h3>
+                                            <p style={{ margin: '4px 0 0 0', fontSize: 12, color: 'var(--text-secondary)' }}>UPC: {item.upc}</p>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div style={{ display: 'flex', gap: 8 }}>
                                     <button style={{ padding: 6 }} onClick={() => removeItem(item.id!)} className="btn-danger">

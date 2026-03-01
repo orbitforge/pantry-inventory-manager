@@ -12,6 +12,8 @@ export default function ProductForm({ initialUpc = '', onComplete }: ProductForm
     const navigate = useNavigate();
     const [upc, setUpc] = useState(initialUpc);
     const [name, setName] = useState('');
+    const [brand, setBrand] = useState('');
+    const [image, setImage] = useState('');
     const [quantity, setQuantity] = useState(1);
     const [hasThreshold, setHasThreshold] = useState(false);
     const [threshold, setThreshold] = useState(1);
@@ -27,6 +29,8 @@ export default function ProductForm({ initialUpc = '', onComplete }: ProductForm
             const existing = await db.inventory.where('upc').equals(barcode).first();
             if (existing) {
                 setName(existing.name);
+                setBrand(existing.brand || '');
+                setImage(existing.image || '');
                 setQuantity(existing.quantity + 1); // bump qty if exists
                 setHasThreshold(existing.hasThreshold);
                 setThreshold(existing.threshold);
@@ -34,12 +38,17 @@ export default function ProductForm({ initialUpc = '', onComplete }: ProductForm
                 return;
             }
 
-            // If not local, check Open Food Facts
-            const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
+            // If not local, check UPCItemDB Trial API
+            const res = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${barcode}`);
             const data = await res.json();
 
-            if (data.status === 1 && data.product) {
-                setName(data.product.product_name || data.product.generic_name || '');
+            if (data.code === 'OK' && data.items && data.items.length > 0) {
+                const item = data.items[0];
+                setName(item.title || '');
+                setBrand(item.brand || '');
+                if (item.images && item.images.length > 0) {
+                    setImage(item.images[0]);
+                }
             } else {
                 setError('Product not found in database. Please enter details manually.');
             }
@@ -69,6 +78,8 @@ export default function ProductForm({ initialUpc = '', onComplete }: ProductForm
             if (existing && existing.id) {
                 await db.inventory.update(existing.id, {
                     name,
+                    brand,
+                    image,
                     quantity,
                     hasThreshold,
                     threshold,
@@ -78,6 +89,8 @@ export default function ProductForm({ initialUpc = '', onComplete }: ProductForm
                 await db.inventory.add({
                     upc,
                     name,
+                    brand,
+                    image,
                     quantity,
                     hasThreshold,
                     threshold,
@@ -110,6 +123,12 @@ export default function ProductForm({ initialUpc = '', onComplete }: ProductForm
                 <form onSubmit={handleSubmit}>
                     {error && <div style={{ backgroundColor: 'rgba(248, 81, 73, 0.1)', color: 'var(--danger-color)', padding: 12, borderRadius: 8, marginBottom: 16, fontSize: 14 }}>{error}</div>}
 
+                    {image && (
+                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+                            <img src={image} alt="Product" style={{ height: 120, objectFit: 'contain', borderRadius: 8 }} />
+                        </div>
+                    )}
+
                     <div style={{ marginBottom: 16 }}>
                         <label style={{ display: 'block', marginBottom: 8, fontSize: 14, color: 'var(--text-secondary)' }}>UPC / Barcode (Optional)</label>
                         <input
@@ -135,6 +154,17 @@ export default function ProductForm({ initialUpc = '', onComplete }: ProductForm
                             onChange={(e) => setName(e.target.value)}
                             placeholder="e.g. Tomato Soup"
                             required
+                        />
+                    </div>
+
+                    <div style={{ marginBottom: 16 }}>
+                        <label style={{ display: 'block', marginBottom: 8, fontSize: 14, color: 'var(--text-secondary)' }}>Brand (Optional)</label>
+                        <input
+                            type="text"
+                            className="input"
+                            value={brand}
+                            onChange={(e) => setBrand(e.target.value)}
+                            placeholder="e.g. Campbell's"
                         />
                     </div>
 

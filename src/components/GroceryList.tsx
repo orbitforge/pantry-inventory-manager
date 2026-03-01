@@ -40,11 +40,21 @@ export default function GroceryList() {
                         </h3>
                         {lowStockItems.map((item: any) => (
                             <div key={`inv-${item.id}`} className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <div>
-                                    <h4 style={{ margin: 0 }}>{item.name}</h4>
-                                    <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)' }}>
-                                        Have: {item.quantity} · Threshold: {item.threshold}
-                                    </p>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                                    {item.image ? (
+                                        <img src={item.image} alt={item.name} style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 8, backgroundColor: 'white' }} />
+                                    ) : (
+                                        <div style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: 'var(--bg-elevated)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <ShoppingCart size={20} color="var(--text-secondary)" />
+                                        </div>
+                                    )}
+                                    <div>
+                                        {item.brand && <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-color)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>{item.brand}</div>}
+                                        <h4 style={{ margin: 0, lineHeight: 1.2 }}>{item.name}</h4>
+                                        <p style={{ margin: '4px 0 0 0', fontSize: 12, color: 'var(--text-secondary)' }}>
+                                            Have: {item.quantity} · Threshold: {item.threshold}
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         ))}
