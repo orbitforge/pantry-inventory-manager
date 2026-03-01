@@ -5,6 +5,7 @@ import ProductForm from './ProductForm';
 
 export default function Scanner() {
     const [scannedUpc, setScannedUpc] = useState<string | null>(null);
+    const [isManualEntry, setIsManualEntry] = useState(false);
     const [isScanning, setIsScanning] = useState(false);
     const scannerRef = useRef<Html5Qrcode | null>(null);
     const [error, setError] = useState<string>('');
@@ -55,12 +56,13 @@ export default function Scanner() {
 
     const resetScan = () => {
         setScannedUpc(null);
+        setIsManualEntry(false);
     };
 
-    if (scannedUpc) {
+    if (scannedUpc !== null || isManualEntry) {
         return (
             <div className="container">
-                <ProductForm initialUpc={scannedUpc} onComplete={() => setScannedUpc(null)} />
+                <ProductForm initialUpc={scannedUpc || ''} onComplete={() => { setScannedUpc(null); setIsManualEntry(false); }} />
                 <button onClick={resetScan} className="btn-primary" style={{ marginTop: 16, backgroundColor: 'var(--bg-elevated)', color: 'var(--text-primary)' }}>
                     Cancel & Scan Again
                 </button>
@@ -99,7 +101,7 @@ export default function Scanner() {
                         <div style={{ marginTop: 32, width: '100%', borderTop: '1px solid var(--border-color)', paddingTop: 24 }}>
                             <p style={{ color: 'var(--text-secondary)', marginBottom: 12, fontSize: 14 }}>Or enter manually:</p>
                             <button
-                                onClick={() => setScannedUpc('')}
+                                onClick={() => setIsManualEntry(true)}
                                 style={{ width: '100%', padding: 12, backgroundColor: 'transparent', border: '1px solid var(--border-color)' }}>
                                 Manual Entry
                             </button>

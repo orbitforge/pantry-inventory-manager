@@ -4,6 +4,18 @@ import db from '../db';
 
 export default function Settings() {
     const [message, setMessage] = useState('');
+    const [defaultThreshold, setDefaultThreshold] = useState(() => {
+        const saved = localStorage.getItem('pantry_default_threshold');
+        return saved ? parseInt(saved, 10) : 1;
+    });
+
+    const handleThresholdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = parseInt(e.target.value, 10) || 0;
+        setDefaultThreshold(val);
+        localStorage.setItem('pantry_default_threshold', val.toString());
+        setMessage('Settings saved!');
+        setTimeout(() => setMessage(''), 3000);
+    };
 
     const exportData = async () => {
         try {
@@ -41,6 +53,24 @@ export default function Settings() {
                     Export JSON
                 </button>
                 {message && <p style={{ marginTop: 12, color: 'var(--success-color)', fontSize: 14 }}>{message}</p>}
+            </div>
+
+            <div className="card" style={{ marginTop: 16 }}>
+                <h3>Global Preferences</h3>
+                <div style={{ marginTop: 16 }}>
+                    <label style={{ display: 'block', marginBottom: 8, fontSize: 14, color: 'var(--text-secondary)' }}>Default Low Stock Alert Threshold</label>
+                    <input
+                        type="number"
+                        className="input"
+                        value={defaultThreshold}
+                        onChange={handleThresholdChange}
+                        min="0"
+                        style={{ maxWidth: 100 }}
+                    />
+                    <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
+                        New items added to your pantry will use this threshold amount by default.
+                    </p>
+                </div>
             </div>
         </div>
     );

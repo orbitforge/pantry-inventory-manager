@@ -16,7 +16,11 @@ export default function ProductForm({ initialUpc = '', onComplete }: ProductForm
     const [image, setImage] = useState('');
     const [quantity, setQuantity] = useState(1);
     const [hasThreshold, setHasThreshold] = useState(false);
-    const [threshold, setThreshold] = useState(1);
+    const [threshold, setThreshold] = useState(() => {
+        const saved = localStorage.getItem('pantry_default_threshold');
+        return saved ? parseInt(saved, 10) : 1;
+    });
+    const [category, setCategory] = useState('Other');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -31,6 +35,7 @@ export default function ProductForm({ initialUpc = '', onComplete }: ProductForm
                 setName(existing.name);
                 setBrand(existing.brand || '');
                 setImage(existing.image || '');
+                setCategory(existing.category || 'Other');
                 setQuantity(existing.quantity + 1); // bump qty if exists
                 setHasThreshold(existing.hasThreshold);
                 setThreshold(existing.threshold);
@@ -39,19 +44,50 @@ export default function ProductForm({ initialUpc = '', onComplete }: ProductForm
             }
 
             // If not local, check UPCItemDB Trial API via CORS proxy to bypass browser restrictions
-            const apiUrl = encodeURIComponent(`https://api.upcitemdb.com/prod/trial/lookup?upc=${barcode}`);
-            const res = await fetch(`https://api.allorigins.win/raw?url=${apiUrl}`);
-            const data = await res.json();
+            let foundInUpcItemDb = false;
+            try {
+                const apiUrl = encodeURIComponent(`https://api.upcitemdb.com/prod/trial/lookup?upc=${barcode}`);
+                const res = await fetch(`https://api.allorigins.win/raw?url=${apiUrl}`);
+                const data = await res.json();
 
-            if (data.code === 'OK' && data.items && data.items.length > 0) {
-                const item = data.items[0];
-                setName(item.title || '');
-                setBrand(item.brand || '');
-                if (item.images && item.images.length > 0) {
-                    setImage(item.images[0]);
+                if (data.code === 'OK' && data.items && data.items.length > 0) {
+                    const item = data.items[0];
+                    setName(item.title || '');
+                    setBrand(item.brand || '');
+                    if (item.category && typeof item.category === 'string') {
+                        // try to map UPCItemDB category string
+                        const lowerCat = item.category.toLowerCase();
+                        if (lowerCat.includes('beverage') || lowerCat.includes('drink')) setCategory('Beverages');
+                        else if (lowerCat.includes('can') || lowerCat.includes('soup')) setCategory('Canned Goods');
+                        else if (lowerCat.includes('snack') || lowerCat.includes('candy') || lowerCat.includes('chip')) setCategory('Snacks');
+                        else if (lowerCat.includes('spice') || lowerCat.includes('seasoning')) setCategory('Spices');
+                        else if (lowerCat.includes('bak')) setCategory('Baking');
+                    }
+                    if (item.images && item.images.length > 0) {
+                        setImage(item.images[0]);
+                    }
+                    foundInUpcItemDb = true;
                 }
-            } else {
-                setError('Product not found in database. Please enter details manually.');
+            } catch (upcErr) {
+                console.error("UPCItemDB failed", upcErr);
+            }
+
+            // Fallback to Open Food Facts
+            if (!foundInUpcItemDb) {
+                const offRes = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
+                const offData = await offRes.json();
+
+                if (offData.status === 1 && offData.product) {
+                    setName(offData.product.product_name || offData.product.generic_name || '');
+                    if (offData.product.brands) {
+                        setBrand(offData.product.brands.split(',')[0]);
+                    }
+                    if (offData.product.image_url) {
+                        setImage(offData.product.image_url);
+                    }
+                } else {
+                    setError('Product not found in any database. Please enter details manually.');
+                }
             }
         } catch (err) {
             setError('Error looking up product. Please enter manually.');
@@ -81,6 +117,7 @@ export default function ProductForm({ initialUpc = '', onComplete }: ProductForm
                     name,
                     brand,
                     image,
+                    category,
                     quantity,
                     hasThreshold,
                     threshold,
@@ -92,6 +129,7 @@ export default function ProductForm({ initialUpc = '', onComplete }: ProductForm
                     name,
                     brand,
                     image,
+                    category,
                     quantity,
                     hasThreshold,
                     threshold,
@@ -167,6 +205,24 @@ export default function ProductForm({ initialUpc = '', onComplete }: ProductForm
                             onChange={(e) => setBrand(e.target.value)}
                             placeholder="e.g. Campbell's"
                         />
+                    </div>
+
+                    <div style={{ marginBottom: 16 }}>
+                        <label style={{ display: 'block', marginBottom: 8, fontSize: 14, color: 'var(--text-secondary)' }}>Category</label>
+                        <select
+                            className="input"
+                            value={category}
+                            onChange={(e) => setCategory(e.target.value)}
+                        >
+                            <option value="Baking">Baking</option>
+                            <option value="Beverages">Beverages</option>
+                            <option value="Canned Goods">Canned Goods</option>
+                            <option value="Dairy">Dairy</option>
+                            <option value="Produce">Produce</option>
+                            <option value="Snacks">Snacks</option>
+                            <option value="Spices">Spices</option>
+                            <option value="Other">Other</option>
+                        </select>
                     </div>
 
                     <div style={{ marginBottom: 24 }}>
