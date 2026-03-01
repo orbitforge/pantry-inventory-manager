@@ -38,8 +38,9 @@ export default function ProductForm({ initialUpc = '', onComplete }: ProductForm
                 return;
             }
 
-            // If not local, check UPCItemDB Trial API
-            const res = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${barcode}`);
+            // If not local, check UPCItemDB Trial API via CORS proxy to bypass browser restrictions
+            const apiUrl = encodeURIComponent(`https://api.upcitemdb.com/prod/trial/lookup?upc=${barcode}`);
+            const res = await fetch(`https://api.allorigins.win/raw?url=${apiUrl}`);
             const data = await res.json();
 
             if (data.code === 'OK' && data.items && data.items.length > 0) {
