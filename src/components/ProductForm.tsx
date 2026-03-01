@@ -5,10 +5,11 @@ import { useNavigate } from 'react-router-dom';
 
 interface ProductFormProps {
     initialUpc?: string;
-    onComplete?: () => void;
+    initialItem?: any;
+    onComplete: () => void;
 }
 
-export default function ProductForm({ initialUpc = '', onComplete }: ProductFormProps) {
+export default function ProductForm({ initialUpc = '', initialItem, onComplete }: ProductFormProps) {
     const navigate = useNavigate();
     const [upc, setUpc] = useState(initialUpc);
     const [name, setName] = useState('');
@@ -22,11 +23,13 @@ export default function ProductForm({ initialUpc = '', onComplete }: ProductForm
     });
     const [category, setCategory] = useState('Other');
     const [isLoading, setIsLoading] = useState(false);
+    const [loadingMessage, setLoadingMessage] = useState('');
     const [error, setError] = useState('');
 
     // Extract lookup into an async function
     const lookupUpc = async (barcode: string) => {
         setIsLoading(true);
+        setLoadingMessage('');
         setError('');
         try {
             // Check local DB first
@@ -40,11 +43,13 @@ export default function ProductForm({ initialUpc = '', onComplete }: ProductForm
                 setHasThreshold(existing.hasThreshold);
                 setThreshold(existing.threshold);
                 setIsLoading(false);
+                setLoadingMessage('');
                 return;
             }
 
             // If not local, check UPCItemDB Trial API via CORS proxy to bypass browser restrictions
             let foundInUpcItemDb = false;
+            setLoadingMessage('Checking UPCitemdb...');
             try {
                 const apiUrl = encodeURIComponent(`https://api.upcitemdb.com/prod/trial/lookup?upc=${barcode}`);
                 const res = await fetch(`https://api.allorigins.win/raw?url=${apiUrl}`);
@@ -74,6 +79,7 @@ export default function ProductForm({ initialUpc = '', onComplete }: ProductForm
 
             // Fallback to Open Food Facts
             if (!foundInUpcItemDb) {
+                setLoadingMessage('Falling back to Open Food Facts...');
                 const offRes = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
                 const offData = await offRes.json();
 
@@ -93,38 +99,36 @@ export default function ProductForm({ initialUpc = '', onComplete }: ProductForm
             setError('Error looking up product. Please enter manually.');
         } finally {
             setIsLoading(false);
+            setLoadingMessage('');
         }
     };
 
     useEffect(() => {
-        if (initialUpc) {
+        if (initialItem) {
+            setUpc(initialItem.upc);
+            setName(initialItem.name);
+            setBrand(initialItem.brand || '');
+            setImage(initialItem.image || '');
+            setCategory(initialItem.category || 'Other');
+            setQuantity(initialItem.quantity);
+            setHasThreshold(initialItem.hasThreshold);
+            setThreshold(initialItem.threshold);
+        } else if (initialUpc) {
             lookupUpc(initialUpc);
         }
-    }, [initialUpc]);
+    }, [initialUpc, initialItem]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setLoadingMessage('');
         if (!name.trim()) {
             setError('Product name is required.');
             return;
         }
 
         try {
-            const existing = upc ? await db.inventory.where('upc').equals(upc).first() : null;
-
-            if (existing && existing.id) {
-                await db.inventory.update(existing.id, {
-                    name,
-                    brand,
-                    image,
-                    category,
-                    quantity,
-                    hasThreshold,
-                    threshold,
-                    lastUpdated: Date.now()
-                });
-            } else {
-                await db.inventory.add({
+            if (initialItem && initialItem.id) {
+                await db.inventory.update(initialItem.id, {
                     upc,
                     name,
                     brand,
@@ -135,6 +139,32 @@ export default function ProductForm({ initialUpc = '', onComplete }: ProductForm
                     threshold,
                     lastUpdated: Date.now()
                 });
+            } else {
+                const existing = upc ? await db.inventory.where('upc').equals(upc).first() : null;
+                if (existing) {
+                    await db.inventory.update(existing.id, {
+                        name,
+                        brand,
+                        image,
+                        category,
+                        quantity,
+                        hasThreshold,
+                        threshold,
+                        lastUpdated: Date.now()
+                    });
+                } else {
+                    await db.inventory.add({
+                        upc,
+                        name,
+                        brand,
+                        image,
+                        category,
+                        quantity,
+                        hasThreshold,
+                        threshold,
+                        lastUpdated: Date.now()
+                    });
+                }
             }
 
             if (onComplete) {
@@ -151,12 +181,13 @@ export default function ProductForm({ initialUpc = '', onComplete }: ProductForm
     return (
         <div className="card" style={{ marginTop: 16 }}>
             <h2 style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Package /> Product Details
+                <Package /> {initialItem ? 'Edit Product' : 'Product Details'}
             </h2>
 
             {isLoading ? (
                 <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-secondary)' }}>
-                    Loading product info...
+                    <div className="spinner" style={{ border: '4px solid var(--border-color)', borderTop: '4px solid var(--accent-color)', borderRadius: '50%', width: 40, height: 40, animation: 'spin 1s linear infinite', margin: '0 auto' }} />
+                    <p style={{ marginTop: 16, color: 'var(--text-secondary)' }}>{loadingMessage || 'Looking up product...'}</p>
                 </div>
             ) : (
                 <form onSubmit={handleSubmit}>

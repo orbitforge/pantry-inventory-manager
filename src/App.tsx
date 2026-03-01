@@ -1,9 +1,10 @@
 import { BrowserRouter as Router, Routes, Route, NavLink } from 'react-router-dom';
-import { Package, ScanLine, ShoppingCart, Settings as SettingsIcon } from 'lucide-react';
+import { Package, ScanLine, ShoppingCart, Settings as SettingsIcon, Star } from 'lucide-react';
 import InventoryList from './components/InventoryList';
 import GroceryList from './components/GroceryList';
 import Settings from './components/Settings';
 import Scanner from './components/Scanner';
+import FavoritesList from './components/FavoritesList';
 
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
       <div className="app-container">
         <Routes>
           <Route path="/" element={<InventoryList />} />
+          <Route path="/favorites" element={<FavoritesList />} />
           <Route path="/scanner" element={<Scanner />} />
           <Route path="/grocery" element={<GroceryList />} />
           <Route path="/settings" element={<Settings />} />
@@ -21,6 +23,10 @@ function App() {
         <NavLink to="/" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
           <Package size={24} />
           <span>Pantry</span>
+        </NavLink>
+        <NavLink to="/favorites" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+          <Star size={24} />
+          <span>Favorites</span>
         </NavLink>
         <NavLink to="/scanner" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
           <ScanLine size={24} />
